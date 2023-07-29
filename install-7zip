@@ -14,3 +14,11 @@
         creates_path: C:\Program Files\7-Zip\7z.exe
         creates_version: 16.04
         state: present
+
+
+        path: \\10.10.1.200\Ansible\applications\7z.exe
+        product_id: 7-Zip
+        arguments: /S
+        state: present
+        user_name: ansible
+        user_password: K5@SIARNG
