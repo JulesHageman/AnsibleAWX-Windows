@@ -10,7 +10,7 @@
   tasks:
     - name: Install 7zip and use a file version for the installation check
       win_package:
-        path: \\10.10.1.200\Ansible\applications\7z.exe
+        path: \\10.10.1.200\Ansible\applications\7z2301-x64.exe
         product_id: 7-Zip
         arguments: /S
         state: present
