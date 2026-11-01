@@ -1,0 +1,688 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<title>Kop Op</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="description" content="Raadspel voor de iPhone: houd de telefoon tegen je voorhoofd en kantel om goed of pas aan te geven.">
+<meta name="theme-color" content="#24102f">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Kop Op">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" type="image/png" href="icon-180.png">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,800&family=Figtree:wght@400;600;700&display=swap">
+<style>
+/* Layout: één scherm tegelijk. Menu = verticale lijst met kleurtegels; spel = schermvullend woord in landscape. */
+:root {
+  --ink: #24102f;        /* achtergrond: diep aubergine */
+  --ink-2: #331a42;      /* verhoogde vlakken */
+  --ink-3: #4a2d5c;      /* randen */
+  --paper: #fff3df;      /* tekst */
+  --muted: #c7b3d1;      /* secundaire tekst */
+  --saffron: #ffb000;    /* accent */
+  --good: #21c87a;
+  --pass: #ff6a3d;
+  --display: "Bricolage Grotesque", "Avenir Next Condensed", "Arial Narrow", system-ui, sans-serif;
+  --body: "Figtree", -apple-system, "Helvetica Neue", system-ui, sans-serif;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body { height: 100%; }
+body {
+  margin: 0; background: var(--ink); color: var(--paper);
+  font-family: var(--body); font-size: 16px; line-height: 1.45;
+  -webkit-user-select: none; user-select: none; touch-action: manipulation;
+  overscroll-behavior: none;
+}
+button { font: inherit; color: inherit; border: 0; background: none; cursor: pointer; }
+button:focus-visible, textarea:focus-visible { outline: 3px solid var(--saffron); outline-offset: 2px; }
+[hidden] { display: none !important; }
+
+/* ---------- Menu ---------- */
+.screen {
+  min-height: 100%;
+  padding-top: max(20px, env(safe-area-inset-top));
+  padding-bottom: max(24px, env(safe-area-inset-bottom));
+  padding-left: max(16px, env(safe-area-inset-left));
+  padding-right: max(16px, env(safe-area-inset-right));
+}
+.wrap { max-width: 640px; margin: 0 auto; display: flex; flex-direction: column; gap: 22px; }
+.brand { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; padding-top: 8px; }
+.logo {
+  font-family: var(--display); font-weight: 800; font-size: clamp(52px, 17vw, 84px);
+  line-height: .85; letter-spacing: -.03em; margin: 0;
+}
+.logo span { display: inline-block; color: var(--saffron); transform: rotate(-8deg) translateY(-4px); transform-origin: 50% 80%; }
+.tag { margin: 0; color: var(--muted); font-size: 15px; max-width: 34ch; }
+.label { font-size: 12px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); margin: 0 0 10px; }
+
+.cats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+@media (min-width: 520px) { .cats { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+.cat {
+  position: relative; overflow: hidden; text-align: left; border-radius: 18px;
+  padding: 14px 14px 12px; min-height: 104px; display: flex; flex-direction: column; justify-content: space-between;
+  background: var(--c, var(--ink-2)); color: #1b0b24;
+  transition: transform .12s ease;
+}
+.cat:active { transform: scale(.96); }
+.cat b { font-family: var(--display); font-weight: 800; font-size: 21px; line-height: 1.05; letter-spacing: -.01em; }
+.cat small { font-size: 13px; font-weight: 600; opacity: .72; }
+.cat i { position: absolute; right: -6px; bottom: -22px; font-style: normal; font-family: var(--display); font-weight: 800; font-size: 84px; opacity: .16; line-height: 1; }
+.cat.custom { background: transparent; color: var(--paper); border: 2px dashed var(--ink-3); }
+
+.settings { background: var(--ink-2); border-radius: 18px; padding: 6px 16px; }
+.row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 0; }
+.row + .row { border-top: 1px solid var(--ink-3); }
+.row span { font-weight: 600; }
+.row em { display: block; font-style: normal; font-weight: 400; font-size: 13px; color: var(--muted); }
+.seg { display: flex; background: var(--ink); border-radius: 12px; padding: 3px; flex-shrink: 0; }
+.seg button { padding: 7px 11px; border-radius: 9px; font-weight: 700; font-size: 14px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.seg button[aria-pressed="true"] { background: var(--saffron); color: var(--ink); }
+.switch { width: 52px; height: 32px; border-radius: 99px; background: var(--ink); position: relative; flex-shrink: 0; }
+.switch::after { content: ""; position: absolute; top: 3px; left: 3px; width: 26px; height: 26px; border-radius: 50%; background: var(--muted); transition: transform .15s, background .15s; }
+.switch[aria-checked="true"] { background: var(--saffron); }
+.switch[aria-checked="true"]::after { transform: translateX(20px); background: var(--ink); }
+
+.how { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.how div { background: var(--ink-2); border-radius: 16px; padding: 12px; font-size: 13.5px; line-height: 1.35; }
+.how strong { display: block; font-family: var(--display); font-size: 17px; margin-bottom: 4px; }
+.how .g strong { color: var(--good); }
+.how .p strong { color: var(--pass); }
+.how svg { display: block; width: 34px; height: 34px; margin-bottom: 6px; }
+.hint { font-size: 13px; color: var(--muted); margin: 0; }
+
+/* ---------- Klaar-scherm & eigen woorden ---------- */
+.back { align-self: flex-start; font-weight: 700; color: var(--muted); padding: 6px 0; }
+.big-title { font-family: var(--display); font-weight: 800; font-size: clamp(40px, 12vw, 64px); line-height: .95; letter-spacing: -.02em; margin: 0; text-wrap: balance; }
+.steps { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 12px; counter-reset: s; }
+.steps li { display: grid; grid-template-columns: 34px 1fr; gap: 12px; align-items: start; counter-increment: s; }
+.steps li::before { content: counter(s); width: 34px; height: 34px; border-radius: 50%; background: var(--ink-2); display: grid; place-items: center; font-weight: 800; color: var(--saffron); }
+.cta {
+  background: var(--saffron); color: var(--ink); font-family: var(--display); font-weight: 800;
+  font-size: 26px; padding: 18px; border-radius: 20px; width: 100%; transition: transform .1s;
+}
+.cta:active { transform: scale(.97); }
+.ghost { background: var(--ink-2); color: var(--paper); font-weight: 700; padding: 15px; border-radius: 16px; width: 100%; }
+textarea {
+  width: 100%; min-height: 46vh; resize: vertical; border-radius: 16px; border: 2px solid var(--ink-3);
+  background: var(--ink-2); color: var(--paper); font: 17px/1.5 var(--body); padding: 14px; -webkit-user-select: text; user-select: text;
+}
+.note { font-size: 13px; color: var(--muted); margin: 0; }
+.warn { background: color-mix(in srgb, var(--pass) 18%, var(--ink-2)); border-radius: 14px; padding: 12px 14px; font-size: 14px; margin: 0; }
+
+/* ---------- Spel ---------- */
+#game { position: fixed; inset: 0; background: var(--ink); overflow: hidden; }
+#stage {
+  position: absolute; left: 50%; top: 50%; width: var(--sw, 100vw); height: var(--sh, 100vh);
+  transform: translate(-50%, -50%) rotate(var(--rot, 0deg));
+  display: flex; flex-direction: column; background: var(--bg, var(--ink)); transition: background .18s;
+}
+.hud {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: max(10px, env(safe-area-inset-top)) max(18px, env(safe-area-inset-right)) 0 max(18px, env(safe-area-inset-left));
+  font-weight: 800; font-variant-numeric: tabular-nums; font-size: clamp(18px, 5vmin, 30px);
+}
+.hud .x { width: 44px; height: 44px; border-radius: 50%; background: rgb(0 0 0 / .22); display: grid; place-items: center; font-size: 22px; }
+.bar { height: 7px; margin: 10px max(18px, env(safe-area-inset-left)) 0; background: rgb(255 255 255 / .14); border-radius: 9px; overflow: hidden; }
+.bar i { display: block; height: 100%; width: 100%; background: var(--saffron); transform-origin: left; border-radius: 9px; }
+.center { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 0 6vmin; min-height: 0; }
+#word {
+  font-family: var(--display); font-weight: 800; letter-spacing: -.02em; line-height: .95; margin: 0;
+  white-space: nowrap; color: var(--paper);
+}
+#sub { margin: 2vmin 0 0; font-size: clamp(16px, 4.6vmin, 28px); font-weight: 600; color: rgb(255 243 223 / .8); max-width: 36ch; text-wrap: balance; }
+#stage.flash-good { --bg: var(--good); }
+#stage.flash-pass { --bg: var(--pass); }
+#stage.flash-good #word, #stage.flash-pass #word { color: #1b0b24; }
+#stage.flash-good #sub, #stage.flash-pass #sub { color: rgb(27 11 36 / .75); }
+.count #word { font-size: 46vmin !important; color: var(--saffron); }
+.pop { animation: pop .32s cubic-bezier(.2, 1.6, .4, 1); }
+@keyframes pop { from { transform: scale(.7); opacity: .2; } to { transform: scale(1); opacity: 1; } }
+.taps { position: absolute; inset: 0; display: grid; grid-template-columns: 1fr 1fr; }
+.taps button { display: flex; align-items: flex-end; padding: 0 0 max(14px, env(safe-area-inset-bottom)); justify-content: center; font-weight: 800; font-size: 15px; letter-spacing: .08em; text-transform: uppercase; opacity: .55; }
+.taps .tp { color: var(--pass); }
+.taps .tg { color: var(--good); }
+.low .bar i { background: var(--pass); }
+
+/* ---------- Uitslag ---------- */
+.score { display: flex; align-items: baseline; gap: 14px; }
+.score b { font-family: var(--display); font-weight: 800; font-size: 104px; line-height: .8; color: var(--saffron); font-variant-numeric: tabular-nums; }
+.score span { font-size: 18px; font-weight: 600; color: var(--muted); }
+.list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.list button { width: 100%; text-align: left; display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 12px 14px; border-radius: 14px; background: var(--ink-2); font-weight: 700; font-size: 18px; }
+.list button[data-ok="1"] { background: color-mix(in srgb, var(--good) 22%, var(--ink-2)); }
+.list button[data-ok="1"]::after { content: "goed"; color: var(--good); font-size: 13px; letter-spacing: .08em; text-transform: uppercase; }
+.list button[data-ok="0"] { color: var(--muted); }
+.list button[data-ok="0"]::after { content: "pas"; color: var(--pass); font-size: 13px; letter-spacing: .08em; text-transform: uppercase; }
+.btns { display: grid; grid-template-columns: 1fr; gap: 10px; }
+
+@media (prefers-reduced-motion: reduce) { .pop { animation: none; } .cat, .cta { transition: none; } }
+</style>
+</head>
+<body>
+
+<!-- MENU -->
+<section id="home" class="screen">
+  <div class="wrap">
+    <header class="brand">
+      <h1 class="logo">Kop<br><span>Op!</span></h1>
+      <p class="tag">Telefoon tegen je voorhoofd. De anderen beelden uit, jij raadt. Knik voor goed, kop omhoog om te passen.</p>
+    </header>
+
+    <div>
+      <p class="label">Kies een stapel</p>
+      <div class="cats" id="cats"></div>
+    </div>
+
+    <div>
+      <p class="label">Zo speel je</p>
+      <div class="how">
+        <div><svg viewBox="0 0 34 34" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><rect x="5" y="10" width="24" height="14" rx="3"/><path d="M17 4v3M11 5l1.5 2.5M23 5l-1.5 2.5"/></svg><strong>Voorhoofd</strong>Liggend tegen je hoofd, scherm naar de groep.</div>
+        <div class="g"><svg viewBox="0 0 34 34" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M8 9c8 0 14 5 15 14"/><path d="M18 20l5 4 3-6"/></svg><strong>Goed</strong>Kantel het scherm naar de grond.</div>
+        <div class="p"><svg viewBox="0 0 34 34" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M8 25c8 0 14-5 15-14"/><path d="M18 14l5-4 3 6"/></svg><strong>Pas</strong>Kantel het scherm naar het plafond.</div>
+      </div>
+    </div>
+
+    <div>
+      <p class="label">Instellingen</p>
+      <div class="settings">
+        <div class="row"><span>Rondetijd</span>
+          <div class="seg" id="dur" role="group" aria-label="Rondetijd">
+            <button data-v="60">60s</button><button data-v="90">90s</button><button data-v="120">2m</button>
+          </div>
+        </div>
+        <div class="row"><span>Geluid<em>Staat je iPhone op stil, dan hoor je niets.</em></span><button class="switch" id="snd" role="switch" aria-label="Geluid"></button></div>
+        <div class="row"><span>Kantelrichting omdraaien<em>Goed = omhoog, pas = omlaag.</em></span><button class="switch" id="inv" role="switch" aria-label="Kantelrichting omdraaien"></button></div>
+      </div>
+    </div>
+    <p class="hint">Tip: tik in Safari op Deel en kies "Zet op beginscherm". Dan start Kop Op als app, schermvullend en ook offline.</p>
+  </div>
+</section>
+
+<!-- KLAAR -->
+<section id="ready" class="screen" hidden>
+  <div class="wrap">
+    <button class="back" data-go="home">← Stapels</button>
+    <p class="label" id="readyCount"></p>
+    <h2 class="big-title" id="readyTitle"></h2>
+    <ol class="steps">
+      <li>Tik op Start en sta toegang tot beweging toe als je iPhone erom vraagt.</li>
+      <li>Houd de telefoon liggend tegen je voorhoofd, scherm naar de anderen. Na 3 tellen begint het.</li>
+      <li>Geraden? Knik: scherm naar de grond. Te moeilijk? Kop omhoog: scherm naar het plafond.</li>
+    </ol>
+    <p class="warn" id="sensorWarn" hidden></p>
+    <button class="cta" id="startBtn">Start</button>
+  </div>
+</section>
+
+<!-- EIGEN WOORDEN -->
+<section id="custom" class="screen" hidden>
+  <div class="wrap">
+    <button class="back" data-go="home">← Stapels</button>
+    <h2 class="big-title">Eigen woorden</h2>
+    <p class="note">Eén woord of begrip per regel. Handig voor namen van vrienden, inside jokes of een themafeest. Wordt alleen op deze telefoon bewaard.</p>
+    <label class="label" for="customText">Jouw woorden</label>
+    <textarea id="customText" placeholder="Oma's verjaardag&#10;De buurman&#10;Vakantie in Frankrijk"></textarea>
+    <button class="cta" id="customSave">Bewaar en speel</button>
+  </div>
+</section>
+
+<!-- UITSLAG -->
+<section id="results" class="screen" hidden>
+  <div class="wrap">
+    <p class="label" id="resCat"></p>
+    <div class="score"><b id="resScore">0</b><span id="resSub"></span></div>
+    <p class="note">Tik op een woord om het om te zetten als het kantelen niet goed ging.</p>
+    <ul class="list" id="resList"></ul>
+    <div class="btns">
+      <button class="cta" id="againBtn">Nog een ronde</button>
+      <button class="ghost" data-go="home">Andere stapel</button>
+    </div>
+  </div>
+</section>
+
+<!-- SPEL -->
+<section id="game" hidden>
+  <div id="stage">
+    <div class="hud" id="hud">
+      <button class="x" id="quitBtn" aria-label="Stoppen">×</button>
+      <span id="timeTxt">60</span>
+      <span id="scoreTxt">0</span>
+    </div>
+    <div class="bar" id="barWrap"><i id="bar"></i></div>
+    <div class="center">
+      <p id="word"></p>
+      <p id="sub"></p>
+    </div>
+    <div class="taps" id="taps" hidden>
+      <button class="tp" id="tapPass">← Pas</button>
+      <button class="tg" id="tapGood">Goed →</button>
+    </div>
+  </div>
+</section>
+
+<script>
+"use strict";
+
+/* ================= Woordenlijsten ================= */
+const CATS = [
+  { id: "dieren", name: "Dieren", c: "#ffb000", w: "hond|kat|olifant|giraf|pinguïn|kangoeroe|krokodil|slang|aap|gorilla|leeuw|tijger|zebra|nijlpaard|neushoorn|kameel|ijsbeer|panda|koala|luiaard|eekhoorn|egel|vleermuis|uil|papegaai|flamingo|struisvogel|pauw|kip|haan|koe|varken|schaap|geit|paard|ezel|konijn|hamster|muis|kikker|schildpad|haai|dolfijn|walvis|octopus|kwal|krab|kreeft|vlinder|bij|mier|spin|slak|mug|lieveheersbeestje|wolf|vos|hert|bever|zeehond|otter|kameleon|mol|specht|kwartel|lama" },
+  { id: "beroepen", name: "Beroepen", c: "#ff8fb1", w: "brandweerman|politieagent|dokter|tandarts|verpleegkundige|kapper|bakker|slager|kok|ober|piloot|stewardess|kapitein|buschauffeur|taxichauffeur|postbode|boer|visser|timmerman|loodgieter|elektricien|schilder|metselaar|architect|advocaat|rechter|leraar|bibliothecaris|astronaut|wetenschapper|uitvinder|journalist|fotograaf|nieuwslezer|weerman|dj|zanger|drummer|dirigent|goochelaar|clown|acrobaat|dierenarts|dierenverzorger|tuinman|glazenwasser|vuilnisman|kassamedewerker|programmeur|detective|spion|butler|bodyguard|scheidsrechter|voetbaltrainer|imker|schoenmaker|smid|duiker|bergbeklimmer|chirurg|yogaleraar" },
+  { id: "eten", name: "Eten & drinken", c: "#7fd8be", w: "pizza|patat|frikandel|kroket|bitterbal|stroopwafel|hagelslag|pindakaas|kaas|haring|poffertjes|pannenkoek|oliebol|appeltaart|erwtensoep|stamppot|sushi|spaghetti|lasagne|hamburger|hotdog|taco|popcorn|chips|ijsje|slagroom|chocolade|drop|banaan|ananas|watermeloen|aardbei|citroen|kokosnoot|ui|knoflook|spruitjes|broccoli|wortel|aardappel|gebakken ei|croissant|tosti|tomatensoep|koffie|thee|chocolademelk|limonade|cola|melk|smoothie|milkshake|champagne|suikerspin|kauwgom|lolly|verjaardagstaart|pepernoten|tompouce|rookworst|mosselen|fondue|gourmetten" },
+  { id: "doen", name: "Uitbeelden", c: "#b39cff", w: "zwemmen|fietsen|dansen|schaatsen|skiën|surfen|koken|afwassen|stofzuigen|strijken|tandenpoetsen|douchen|snurken|niezen|gapen|huilen|lachen|fluiten|zingen|gitaar spelen|piano spelen|trommelen|schilderen|fotograferen|vissen|tuinieren|bergbeklimmen|paardrijden|boksen|jongleren|touwtjespringen|hoelahoepen|breakdancen|band verwisselen|auto wassen|ballon opblazen|cadeau uitpakken|selfie maken|verstoppertje spelen|roeien|zeilen|parachutespringen|tennissen|golfen|bowlen|hardlopen|kruipen|toveren|typen|telefoneren|verdwalen|stiekem sluipen|ijsje likken|spaghetti eten|taart bakken|verhuizen|trouwen|vliegeren|sneeuwballen gooien|tent opzetten" },
+  { id: "sport", name: "Sport & spel", c: "#ff6a3d", w: "voetbal|hockey|tennis|basketbal|volleybal|honkbal|rugby|golf|wielrennen|turnen|judo|karate|schermen|boogschieten|darten|biljarten|tafeltennis|badminton|skateboarden|snowboarden|kitesurfen|waterpolo|korfbal|fierljeppen|marathon|Elfstedentocht|Olympische Spelen|sjoelen|klaverjassen|schaken|dammen|memory|legpuzzel|mens-erger-je-niet|tikkertje|knikkeren|yoga|fitness|triatlon|Formule 1|dressuur|kanoën|klimmuur|minigolf|trampolinespringen|hordelopen|kogelstoten|speerwerpen|polsstokhoogspringen|sumoworstelen|curling|bobslee|ijshockey|kunstschaatsen|zaklopen|koekhappen|estafette" },
+  { id: "huis", name: "In huis", c: "#9ad0ff", w: "stofzuiger|wasmachine|koelkast|magnetron|broodrooster|waterkoker|koffiezetapparaat|strijkijzer|föhn|tandenborstel|wc-rol|badeend|douchegordijn|kussen|dekbed|wekker|lamp|kaars|televisie|afstandsbediening|bank|schommelstoel|boekenkast|spiegel|kapstok|paraplu|sleutelbos|deurbel|brievenbus|vuilnisbak|wasknijper|ladder|hamer|schroevendraaier|boormachine|gieter|kamerplant|fotolijst|klok|oplader|laptop|spelcomputer|gordijnen|vloerkleed|open haard|dienblad|theepot|vergiet|garde|deegroller|kurkentrekker|blikopener|koekenpan|ovenwant|theedoek|stopcontact|rookmelder|wasmand|strijkplank" },
+  { id: "wereld", name: "Landen & steden", c: "#ffd66b", w: "Nederland|België|Duitsland|Frankrijk|Spanje|Italië|Griekenland|Engeland|Ierland|Noorwegen|Zweden|IJsland|Zwitserland|Oostenrijk|Turkije|Egypte|Marokko|Zuid-Afrika|Kenia|Brazilië|Argentinië|Mexico|Canada|Amerika|Australië|Japan|China|India|Thailand|Rusland|Amsterdam|Rotterdam|Den Haag|Utrecht|Groningen|Maastricht|Parijs|Londen|Rome|Venetië|Barcelona|New York|Las Vegas|Tokio|Sydney|Dubai|Berlijn|Brussel|Antwerpen|Texel|Lapland|Hawaï|Noordpool|Sahara|Mount Everest|Niagarawatervallen|Eiffeltoren|Piramides|Chinese Muur|Vrijheidsbeeld" },
+  { id: "fantasie", name: "Sprookjes & fantasie", c: "#f2a6ff", w: "Roodkapje|Sneeuwwitje|Assepoester|Doornroosje|Hans en Grietje|Repelsteeltje|De gelaarsde kat|Pinokkio|Peter Pan|Kapitein Haak|Alice in Wonderland|De kleine zeemeermin|Klein Duimpje|Rapunzel|De kikkerkoning|De drie biggetjes|Goudlokje|De boze wolf|Sinterklaas|Kerstman|paashaas|tandenfee|draak|eenhoorn|heks|tovenaar|kabouter|reus|trol|elfje|vampier|spook|zombie|weerwolf|mummie|robot|alien|superheld|piraat|ridder|prinses|vliegend tapijt|toverstaf|glazen muiltje|kasteel|schatkaart|vliegende schotel|tijdmachine|onzichtbaarheidsmantel|bezemsteel|kristallen bol|geest uit de fles|zeven dwergen|gouden ei|bonenstaak|vliegend paard" },
+  { id: "kids", name: "Voor kinderen", c: "#8ee07a", w: "bal|fiets|auto|trein|vliegtuig|boot|huis|boom|bloem|zon|maan|ster|regen|sneeuwpop|regenboog|ijsje|taart|banaan|appel|hond|kat|eend|koe|vis|olifant|beer|knuffel|pop|blokken|schommel|glijbaan|zandbak|emmer|schep|laarzen|jas|muts|sjaal|bed|bad|tandenborstel|boek|potlood|schaar|ballon|verjaardag|cadeau|brandweerauto|tractor|dinosaurus|monster|prinses|piraat|robot|raket|kasteel|vlieger|zwembad|kleurpotlood|knuffelbeer" },
+  { id: "nl", name: "Typisch Nederlands", c: "#ff9f45", w: "klompen|molen|tulp|dijk|gracht|woonboot|bakfiets|hagelslag|stroopwafel|kaasmarkt|Koningsdag|oranje|Elfstedentocht|Sinterklaas|pakjesavond|schoen zetten|pepernoten|oliebollen|vuurwerk|carbid schieten|gourmetten|sinterklaasgedicht|verjaardag in een kring|drop|beschuit met muisjes|haring happen|Deltawerken|polder|wadlopen|zeehondje|strandtent|windscherm|caravan|kroket uit de muur|bitterbal|borrel|gezellig|tegenwind|fietsenrek|stamppot|rookworst|ontbijtkoek|tompouce|kermis|botsauto|draaiorgel|boerenkool|Hollandse Nieuwe|natuurijs|koek-en-zopie|vrijmarkt|sloot|fietsbel|regenpak|snert|appelflap|vlaggetjes|rondvaartboot" },
+  { id: "feest", name: "Feest & muziek", c: "#5ee0e6", w: "verjaardag|bruiloft|carnaval|Halloween|Kerstmis|Pasen|Oud en Nieuw|karaoke|discotheek|festival|kampvuur|polonaise|slinger|confetti|gitaar|piano|viool|trompet|drumstel|saxofoon|harp|accordeon|blokfluit|triangel|xylofoon|doedelzak|contrabas|microfoon|koptelefoon|platenspeler|koor|orkest|luchtgitaar|stagediven|limbo|ballet|tango|wals|stoelendans|vrijgezellenfeest|surpriseparty|playbackshow|dj-set|lampionnen|feesthoedje|toeter|taart aansnijden|toost uitbrengen|cadeautjes|kerstboom|paaseieren zoeken|vuurwerkpijl|sterretje|discobal|schuifelen|headbangen|moshpit|meezingen" }
+];
+CATS.forEach(c => { c.words = c.w.split("|"); delete c.w; });
+
+/* ================= Opslag (veilig) ================= */
+const store = {
+  get(k, d) { try { const v = localStorage.getItem("kopop:" + k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
+  set(k, v) { try { localStorage.setItem("kopop:" + k, JSON.stringify(v)); } catch (e) {} }
+};
+const settings = Object.assign({ duration: 60, sound: true, invert: false }, store.get("settings", {}));
+const saveSettings = () => store.set("settings", settings);
+
+/* ================= Helpers ================= */
+const $ = s => document.querySelector(s);
+const screens = ["home", "ready", "custom", "results", "game"];
+function show(id) {
+  screens.forEach(s => { $("#" + s).hidden = s !== id; });
+  window.scrollTo(0, 0);
+}
+document.querySelectorAll("[data-go]").forEach(b => b.addEventListener("click", () => show(b.dataset.go)));
+
+function shuffle(a) { for (let i = a.length - 1; i > 0; i--) { const j = Math.random() * (i + 1) | 0; [a[i], a[j]] = [a[j], a[i]]; } return a; }
+
+function customWords() { return store.get("custom", []); }
+function getCat(id) {
+  if (id === "mix") return { id: "mix", name: "Alles door elkaar", words: CATS.flatMap(c => c.words) };
+  if (id === "custom") return { id: "custom", name: "Eigen woorden", words: customWords() };
+  return CATS.find(c => c.id === id);
+}
+
+/* Woorden niet herhalen tot de stapel op is */
+function drawDeck(cat) {
+  const used = new Set(store.get("used:" + cat.id, []));
+  let fresh = cat.words.filter(w => !used.has(w));
+  if (fresh.length < 12) { fresh = cat.words.slice(); store.set("used:" + cat.id, []); }
+  return shuffle(fresh);
+}
+function markUsed(cat, words) {
+  const used = new Set(store.get("used:" + cat.id, []));
+  words.forEach(w => used.add(w));
+  store.set("used:" + cat.id, [...used]);
+}
+
+/* ================= Menu opbouwen ================= */
+function renderCats() {
+  const el = $("#cats");
+  el.innerHTML = "";
+  const tiles = CATS.map(c => ({ id: c.id, name: c.name, c: c.c, n: c.words.length }));
+  tiles.push({ id: "mix", name: "Alles door elkaar", c: "#fff3df", n: CATS.reduce((s, c) => s + c.words.length, 0) });
+  tiles.forEach(t => {
+    const b = document.createElement("button");
+    b.className = "cat";
+    b.style.setProperty("--c", t.c);
+    b.innerHTML = `<b></b><small>${t.n} woorden</small><i>${t.name[0]}</i>`;
+    b.querySelector("b").textContent = t.name;
+    b.addEventListener("click", () => openReady(t.id));
+    el.appendChild(b);
+  });
+  const cw = customWords().length;
+  const b = document.createElement("button");
+  b.className = "cat custom";
+  b.innerHTML = `<b>Eigen woorden</b><small>${cw ? cw + " woorden · tik om te spelen" : "Maak je eigen stapel"}</small><i>+</i>`;
+  b.addEventListener("click", () => {
+    $("#customText").value = customWords().join("\n");
+    show("custom");
+  });
+  el.appendChild(b);
+}
+
+function renderSettings() {
+  document.querySelectorAll("#dur button").forEach(b => b.setAttribute("aria-pressed", String(+b.dataset.v === settings.duration)));
+  $("#snd").setAttribute("aria-checked", String(settings.sound));
+  $("#inv").setAttribute("aria-checked", String(settings.invert));
+}
+document.querySelectorAll("#dur button").forEach(b => b.addEventListener("click", () => { settings.duration = +b.dataset.v; saveSettings(); renderSettings(); }));
+$("#snd").addEventListener("click", () => { settings.sound = !settings.sound; saveSettings(); renderSettings(); if (settings.sound) { ensureAudio(); beep(880, .08); } });
+$("#inv").addEventListener("click", () => { settings.invert = !settings.invert; saveSettings(); renderSettings(); });
+
+$("#customSave").addEventListener("click", () => {
+  const words = [...new Set($("#customText").value.split(/\n|,/).map(s => s.trim()).filter(Boolean))];
+  store.set("custom", words);
+  store.set("used:custom", []);
+  renderCats();
+  if (words.length) openReady("custom"); else show("home");
+});
+
+/* ================= Klaar-scherm ================= */
+let currentCat = null;
+function openReady(id) {
+  currentCat = getCat(id);
+  $("#readyTitle").textContent = currentCat.name;
+  $("#readyCount").textContent = `${currentCat.words.length} woorden · ${settings.duration} seconden`;
+  $("#sensorWarn").hidden = true;
+  show("ready");
+}
+
+/* ================= Geluid ================= */
+let actx = null;
+function ensureAudio() {
+  try {
+    if (!actx) actx = new (window.AudioContext || window.webkitAudioContext)();
+    if (actx.state === "suspended") actx.resume();
+  } catch (e) {}
+}
+function beep(freq, dur, delay = 0, type = "sine", vol = .25) {
+  if (!settings.sound || !actx) return;
+  const t = actx.currentTime + delay;
+  const o = actx.createOscillator(), g = actx.createGain();
+  o.type = type; o.frequency.setValueAtTime(freq, t);
+  g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(vol, t + .01); g.gain.exponentialRampToValueAtTime(.001, t + dur);
+  o.connect(g).connect(actx.destination); o.start(t); o.stop(t + dur + .02);
+}
+const sfx = {
+  tick: () => beep(660, .09, 0, "square", .12),
+  go: () => beep(990, .22, 0, "square", .15),
+  good: () => { beep(784, .12); beep(1175, .2, .1); },
+  pass: () => { beep(330, .16, 0, "triangle", .3); beep(247, .22, .12, "triangle", .3); },
+  last: () => beep(1320, .07, 0, "square", .1),
+  end: () => { beep(523, .18, 0, "sawtooth", .15); beep(392, .18, .18, "sawtooth", .15); beep(262, .45, .36, "sawtooth", .15); }
+};
+
+/* ================= Wake lock ================= */
+let wakeLock = null;
+async function lockScreen() { try { if ("wakeLock" in navigator) wakeLock = await navigator.wakeLock.request("screen"); } catch (e) {} }
+function unlockScreen() { try { wakeLock && wakeLock.release(); } catch (e) {} wakeLock = null; }
+document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible" && !$("#game").hidden) lockScreen(); });
+
+/* ================= Sensor =================
+   faceUp = cos(beta)·cos(gamma): +1 scherm naar plafond, 0 rechtop, −1 scherm naar de grond.
+   Werkt in elke houding zonder sprongen bij ±90/180 graden. */
+const sensor = { ok: false, faceUp: 0, gamma: 0, listening: false };
+function onOrient(e) {
+  if (e.beta == null || e.gamma == null) return;
+  const r = Math.PI / 180;
+  const f = Math.cos(e.beta * r) * Math.cos(e.gamma * r);
+  sensor.faceUp = sensor.ok ? sensor.faceUp * .55 + f * .45 : f;
+  sensor.gamma = e.gamma;
+  sensor.ok = true;
+  onSensor();
+}
+function enableSensors() {
+  // requestPermission MOET synchroon vanuit de tik worden aangeroepen (iOS).
+  let perm = Promise.resolve("granted");
+  try {
+    if (typeof DeviceOrientationEvent !== "undefined" && typeof DeviceOrientationEvent.requestPermission === "function") {
+      perm = DeviceOrientationEvent.requestPermission();
+    }
+  } catch (e) { perm = Promise.resolve("denied"); }
+  if (!sensor.listening) { window.addEventListener("deviceorientation", onOrient); sensor.listening = true; }
+  return new Promise(done => {
+    let settled = false;
+    const finish = v => { if (!settled) { settled = true; clearInterval(iv); done(v); } };
+    // komen er al bewegingsgegevens binnen, dan zijn we klaar
+    const iv = setInterval(() => { if (sensor.ok) finish("ok"); }, 60);
+    perm.then(res => {
+      if (res !== "granted") return finish("denied");
+      setTimeout(() => finish(sensor.ok ? "ok" : "none"), 1500);
+    }, () => finish("denied"));
+  });
+}
+
+/* ================= Stand van het scherm =================
+   Staat de iPhone-rotatievergrendeling aan, dan blijft de pagina staand terwijl je de telefoon
+   liggend vasthoudt. Dan draaien we de spelinhoud zelf 90 graden. */
+let rot = 0;
+function layoutStage() {
+  const vw = window.innerWidth, vh = window.innerHeight;
+  const portraitView = vh > vw;
+  if (!portraitView) rot = 0;
+  else if (sensor.ok && Math.abs(sensor.faceUp) < .45) {
+    if (sensor.gamma > 50) rot = -90;
+    else if (sensor.gamma < -50) rot = 90;
+    else if (Math.abs(sensor.gamma) < 25) rot = 0;
+  }
+  const st = $("#stage").style;
+  st.setProperty("--rot", rot + "deg");
+  st.setProperty("--sw", (rot ? vh : vw) + "px");
+  st.setProperty("--sh", (rot ? vw : vh) + "px");
+  fitWord();
+}
+window.addEventListener("resize", () => { if (!$("#game").hidden) layoutStage(); });
+
+function fitWord() {
+  const w = $("#word"), stage = $("#stage");
+  if (!w.textContent) return;
+  const sw = parseFloat(stage.style.getPropertyValue("--sw")) || innerWidth;
+  const sh = parseFloat(stage.style.getPropertyValue("--sh")) || innerHeight;
+  if (game.phase === "count") { w.style.fontSize = ""; return; }
+  let size = Math.min(sh * .34, sw * .2);
+  w.style.whiteSpace = "nowrap";
+  w.style.fontSize = size + "px";
+  const maxW = sw * .9;
+  if (w.scrollWidth > maxW) {
+    // past niet op één regel: kleiner, en bij lange begrippen afbreken over twee regels
+    if (w.textContent.includes(" ") && w.scrollWidth > maxW * 1.6) { w.style.whiteSpace = "normal"; size = Math.min(sh * .24, sw * .14); w.style.fontSize = size + "px"; }
+    let guard = 40;
+    while (guard-- && (w.scrollWidth > maxW || w.offsetHeight > sh * .6) && size > 18) { size *= .92; w.style.fontSize = size + "px"; }
+  }
+}
+
+/* ================= Spel ================= */
+const game = { phase: "idle", mode: "tilt", deck: [], idx: 0, log: [], end: 0, raf: 0, armed: false, steadySince: 0, lastSec: -1, busy: false };
+const T_ACT = .55, T_NEUTRAL = .32;
+
+function setText(word, sub = "") {
+  const w = $("#word");
+  w.textContent = word;
+  $("#sub").textContent = sub;
+  w.classList.remove("pop"); void w.offsetWidth; w.classList.add("pop");
+  fitWord();
+}
+function setFlash(kind) {
+  const s = $("#stage");
+  s.classList.remove("flash-good", "flash-pass");
+  if (kind) s.classList.add("flash-" + kind);
+}
+
+$("#startBtn").addEventListener("click", () => startRound());
+$("#againBtn").addEventListener("click", () => startRound());
+
+function startRound() {
+  ensureAudio();
+  const sensorPromise = enableSensors(); // synchroon in de tik
+  const cat = currentCat;
+  if (!cat || !cat.words.length) { show("home"); return; }
+  Object.assign(game, { phase: "place", shown: null, timeUp: false, deck: drawDeck(cat), idx: 0, log: [], armed: false, steadySince: 0, lastSec: -1, busy: false });
+  $("#scoreTxt").textContent = "0";
+  $("#timeTxt").textContent = settings.duration;
+  $("#bar").style.transform = "scaleX(1)";
+  $("#stage").classList.remove("count", "low");
+  setFlash(null);
+  $("#taps").hidden = true;
+  show("game");
+  lockScreen();
+  layoutStage();
+  setText("Even geduld…", "Sta toegang tot beweging toe als je iPhone erom vraagt.");
+  sensorPromise.then(res => {
+    if (game.phase !== "place") return;
+    if (res === "ok") {
+      game.mode = "tilt";
+      setText("Tegen je voorhoofd!", "Houd de telefoon liggend en stil, scherm naar de anderen.");
+    } else {
+      game.mode = "tap";
+      $("#taps").hidden = false;
+      setText("Tik om te starten", res === "denied"
+        ? "Geen toegang tot beweging. Speel met tikken: rechts is goed, links is pas. Toegang geven kan opnieuw na herladen van de pagina."
+        : "Geen kantelsensor gevonden. Rechts tikken is goed, links tikken is pas.");
+    }
+  });
+}
+
+function onSensor() {
+  if ($("#game").hidden) return;
+  if (game.phase === "place" || game.phase === "play") layoutStage();
+  const f = settings.invert ? -sensor.faceUp : sensor.faceUp;
+  const now = performance.now();
+  if (game.phase === "place" && game.mode === "tilt") {
+    if (Math.abs(f) < T_NEUTRAL) {
+      if (!game.steadySince) game.steadySince = now;
+      else if (now - game.steadySince > 600) countdown();
+    } else game.steadySince = 0;
+  } else if (game.phase === "play" && !game.busy) {
+    if (Math.abs(f) < T_NEUTRAL) game.armed = true;
+    else if (game.armed && f < -T_ACT) answer(true);
+    else if (game.armed && f > T_ACT) answer(false);
+  }
+}
+
+function countdown() {
+  game.phase = "count";
+  $("#stage").classList.add("count");
+  $("#taps").hidden = true;
+  let n = 3;
+  const step = () => {
+    if (game.phase !== "count") return;
+    if (n > 0) { setText(String(n)); $("#sub").textContent = ""; sfx.tick(); n--; setTimeout(step, 850); }
+    else { $("#stage").classList.remove("count"); sfx.go(); play(); }
+  };
+  step();
+}
+
+function play() {
+  game.phase = "play";
+  game.armed = game.mode === "tap" || Math.abs(sensor.faceUp) < T_NEUTRAL;
+  game.end = performance.now() + settings.duration * 1000;
+  if (game.mode === "tap") $("#taps").hidden = false;
+  nextWord();
+  cancelAnimationFrame(game.raf);
+  const loop = () => {
+    if (game.phase !== "play") return;
+    const left = Math.max(0, game.end - performance.now());
+    const sec = Math.ceil(left / 1000);
+    $("#bar").style.transform = `scaleX(${left / (settings.duration * 1000)})`;
+    if (sec !== game.lastSec) {
+      game.lastSec = sec;
+      $("#timeTxt").textContent = sec;
+      $("#stage").classList.toggle("low", sec <= 10);
+      if (sec <= 5 && sec > 0) sfx.last();
+    }
+    if (left <= 0) { if (!game.busy) finish(); else game.timeUp = true; return; }
+    game.raf = requestAnimationFrame(loop);
+  };
+  game.timeUp = false;
+  game.raf = requestAnimationFrame(loop);
+}
+
+function nextWord() {
+  if (game.idx >= game.deck.length) { game.deck = game.deck.concat(shuffle(currentCat.words.slice())); }
+  setFlash(null);
+  game.shown = game.deck[game.idx];
+  setText(game.shown);
+}
+
+function answer(ok) {
+  if (game.phase !== "play" || game.busy) return;
+  game.busy = true;
+  game.armed = false;
+  const word = game.deck[game.idx];
+  game.shown = null;
+  game.log.push({ word, ok });
+  game.idx++;
+  const score = game.log.filter(l => l.ok).length;
+  $("#scoreTxt").textContent = score;
+  setFlash(ok ? "good" : "pass");
+  setText(ok ? "Goed!" : "Pas", word);
+  ok ? sfx.good() : sfx.pass();
+  setTimeout(() => {
+    game.busy = false;
+    if (game.timeUp || performance.now() >= game.end) { finish(); return; }
+    nextWord();
+  }, 750);
+}
+
+function finish() {
+  if (game.phase === "over") return;
+  game.phase = "over";
+  cancelAnimationFrame(game.raf); game.raf = 0;
+  // het woord dat nog op het scherm stond telt als gepast
+  if (game.shown) game.log.push({ word: game.shown, ok: false });
+  game.shown = null;
+  setFlash(null);
+  $("#taps").hidden = true;
+  $("#timeTxt").textContent = "0";
+  $("#bar").style.transform = "scaleX(0)";
+  setText("Tijd!", "Haal de telefoon van je hoofd.");
+  sfx.end();
+  markUsed(currentCat, game.log.map(l => l.word));
+  setTimeout(showResults, 1800);
+}
+
+function showResults() {
+  unlockScreen();
+  renderResults();
+  show("results");
+}
+function renderResults() {
+  const score = game.log.filter(l => l.ok).length;
+  $("#resCat").textContent = currentCat.name;
+  $("#resScore").textContent = score;
+  const passed = game.log.length - score;
+  $("#resSub").textContent = score === 1 ? `woord geraden · ${passed} gepast` : `woorden geraden · ${passed} gepast`;
+  const ul = $("#resList");
+  ul.innerHTML = "";
+  game.log.forEach(l => {
+    const li = document.createElement("li");
+    const b = document.createElement("button");
+    b.textContent = l.word;
+    b.dataset.ok = l.ok ? "1" : "0";
+    b.addEventListener("click", () => { l.ok = !l.ok; renderResults(); });
+    li.appendChild(b); ul.appendChild(li);
+  });
+}
+
+function quit() {
+  game.phase = "idle";
+  cancelAnimationFrame(game.raf); game.raf = 0;
+  unlockScreen();
+  show(currentCat && currentCat.id ? "ready" : "home");
+}
+$("#quitBtn").addEventListener("click", e => { e.stopPropagation(); quit(); });
+
+/* Tikken: als fallback, en tijdens 'place' in tikmodus om te starten */
+$("#tapGood").addEventListener("click", () => { if (game.phase === "place") countdown(); else answer(true); });
+$("#tapPass").addEventListener("click", () => { if (game.phase === "place") countdown(); else answer(false); });
+
+/* Toetsenbord (handig om te testen op een computer) */
+document.addEventListener("keydown", e => {
+  if ($("#game").hidden) return;
+  if (e.key === "Escape") quit();
+  if (game.phase === "place" && (e.key === " " || e.key === "Enter")) countdown();
+  if (game.phase === "play") {
+    if (e.key === "ArrowDown" || e.key === "ArrowRight") answer(true);
+    if (e.key === "ArrowUp" || e.key === "ArrowLeft") answer(false);
+  }
+});
+
+/* ================= Start ================= */
+renderCats();
+renderSettings();
+if ("serviceWorker" in navigator && location.protocol === "https:") {
+  navigator.serviceWorker.register("sw.js").catch(() => {});
+}
+</script>
+</body>
+</html>
