@@ -1,5 +1,5 @@
-// Kop Op: offline cache. Verhoog VERSION bij elke wijziging zodat telefoons de nieuwe versie ophalen.
-const VERSION = "kopop-v4";
+// Wat ben ik?: offline cache. Verhoog VERSION bij elke wijziging zodat telefoons de nieuwe versie ophalen.
+const VERSION = "kopop-v5";
 const FILES = ["./", "index.html", "manifest.webmanifest", "icon-180.png", "icon-512.png"];
 
 self.addEventListener("install", e => {
