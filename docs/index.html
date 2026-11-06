@@ -176,6 +176,39 @@ textarea {
 .list button[data-ok="0"]::after { content: "pas"; color: var(--pass); font-size: 13px; letter-spacing: .08em; text-transform: uppercase; }
 .btns { display: grid; grid-template-columns: 1fr; gap: 10px; }
 
+/* ---------- Wie ben ik? ---------- */
+.modes { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.modes button { text-align: left; padding: 14px; border-radius: 18px; background: var(--ink-2); border: 2px solid var(--ink-3); display: flex; flex-direction: column; gap: 5px; }
+.modes b { font-family: var(--display); font-weight: 800; font-size: 22px; line-height: 1; letter-spacing: -.01em; }
+.modes em { font-style: normal; font-size: 13px; line-height: 1.3; color: var(--muted); }
+.modes button[aria-pressed="true"] { background: var(--saffron); border-color: var(--saffron); color: var(--ink); }
+.modes button[aria-pressed="true"] em { color: rgb(36 16 47 / .78); }
+.wbi-mode .cat.custom { display: none; }
+.joincard { width: 100%; text-align: left; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 16px 18px; border-radius: 18px; background: var(--paper); color: var(--ink); }
+.joincard b { font-family: var(--display); font-weight: 800; font-size: 22px; line-height: 1.05; }
+.joincard small { display: block; font-size: 13px; font-weight: 600; opacity: .7; margin-top: 3px; }
+.joincard span { font-family: var(--display); font-weight: 800; font-size: 30px; }
+.codebox { background: var(--ink-2); border-radius: 20px; padding: 16px 18px; display: flex; flex-direction: column; gap: 6px; }
+.code { font-family: var(--display); font-weight: 800; font-size: clamp(46px, 15vw, 80px); line-height: 1; letter-spacing: .03em; color: var(--saffron); font-variant-numeric: tabular-nums; margin: 0; overflow-wrap: anywhere; }
+.codein {
+  width: 100%; font: 800 34px/1.1 var(--display); letter-spacing: .06em; padding: 14px 16px; border-radius: 16px;
+  border: 2px solid var(--ink-3); background: var(--ink-2); color: var(--saffron); -webkit-user-select: text; user-select: text;
+}
+.codein::placeholder { color: var(--ink-3); }
+.err { color: var(--pass); font-weight: 600; font-size: 14px; margin: 0; }
+.ok-deck { color: var(--good); font-weight: 700; font-size: 15px; margin: 0; }
+.players { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 6px; }
+.players button { aspect-ratio: 1; max-width: 100%; border-radius: 50%; background: var(--ink-2); border: 2px solid var(--ink-3); font-weight: 800; font-size: 18px; font-variant-numeric: tabular-nums; }
+.players button[aria-pressed="true"] { background: var(--saffron); border-color: var(--saffron); color: var(--ink); }
+.cta:disabled { background: var(--ink-2); color: var(--muted); }
+#stage.wbi .bar { visibility: hidden; }
+#stage.wbi .taps { top: auto; height: 28%; }
+#scoreTxt.pop { display: inline-block; }
+.verdict { font-size: 20px; font-weight: 700; margin: 0; }
+.verdict.good { color: var(--good); }
+.verdict.pass { color: var(--pass); }
+.list .static { pointer-events: none; }
+
 @media (prefers-reduced-motion: reduce) { .pop { animation: none; } .cat, .cta { transition: none; } }
 </style>
 </head>
@@ -186,8 +219,15 @@ textarea {
   <div class="wrap">
     <header class="brand">
       <h1 class="logo">Kop<br><span>Op!</span></h1>
-      <p class="tag">Telefoon tegen je voorhoofd. De anderen beelden uit, jij raadt. Knik voor goed, kop omhoog om te passen.</p>
+      <p class="tag" id="tag">Telefoon tegen je voorhoofd. De anderen beelden uit, jij raadt. Knik voor goed, kop omhoog om te passen.</p>
     </header>
+
+    <div class="modes" id="modes" role="group" aria-label="Kies een spel">
+      <button data-kind="raden"><b>Raden</b><em>De groep beeldt uit of omschrijft, jij raadt tegen de klok.</em></button>
+      <button data-kind="wbi"><b>Wie ben ik?</b><em>Ieder een telefoon. Stel ja/nee-vragen tot je weet wie je bent.</em></button>
+    </div>
+
+    <button class="joincard" id="joinCard" hidden><div><b>Meedoen met een code</b><small>Iemand anders heeft al een spel gestart</small></div><span>→</span></button>
 
     <div>
       <div class="cats-head">
@@ -197,7 +237,7 @@ textarea {
       <div class="cats" id="cats"></div>
     </div>
 
-    <div>
+    <div id="howRaden">
       <p class="label">Zo speel je</p>
       <div class="how">
         <div><svg viewBox="0 0 34 34" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><rect x="5" y="10" width="24" height="14" rx="3"/><path d="M17 4v3M11 5l1.5 2.5M23 5l-1.5 2.5"/></svg><strong>Voorhoofd</strong>Liggend tegen je hoofd, scherm naar de groep.</div>
@@ -206,10 +246,19 @@ textarea {
       </div>
     </div>
 
+    <div id="howWbi" hidden>
+      <p class="label">Zo speel je</p>
+      <div class="how">
+        <div><svg viewBox="0 0 34 34" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="7" width="11" height="20" rx="2.5"/><rect x="19" y="7" width="11" height="20" rx="2.5"/><path d="M15 17h4"/></svg><strong>Zelfde code</strong>Eén start een spel, de rest doet mee met de code.</div>
+        <div><svg viewBox="0 0 34 34" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 12a5 5 0 1 1 7 4.6c-1.3.6-2 1.6-2 3V21"/><path d="M17 26.5v.5"/></svg><strong>Vragen</strong>Om de beurt ja/nee-vragen. Tik op het scherm per vraag.</div>
+        <div class="g"><svg viewBox="0 0 34 34" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M8 9c8 0 14 5 15 14"/><path d="M18 20l5 4 3-6"/></svg><strong>Geraden</strong>Knik en houd even vast. Minste vragen wint.</div>
+      </div>
+    </div>
+
     <div>
       <p class="label">Instellingen</p>
       <div class="settings">
-        <div class="row"><span>Rondetijd</span>
+        <div class="row" id="durRow"><span>Rondetijd</span>
           <div class="seg" id="dur" role="group" aria-label="Rondetijd">
             <button data-v="60">60s</button><button data-v="90">90s</button><button data-v="120">2m</button>
           </div>
@@ -239,6 +288,60 @@ textarea {
     </ol>
     <p class="warn" id="sensorWarn" hidden></p>
     <button class="cta" id="startBtn">Start</button>
+  </div>
+</section>
+
+<!-- WIE BEN IK: NIEUW SPEL / MEEDOEN -->
+<section id="wbi" class="screen" hidden>
+  <div class="wrap">
+    <button class="back" data-go="home">← Terug</button>
+    <p class="label" id="wbiKicker"></p>
+    <h2 class="big-title" id="wbiTitle"></h2>
+
+    <div class="codebox" id="wbiHostBox">
+      <p class="label">Spelcode</p>
+      <p class="code" id="wbiCode"></p>
+      <p class="note">De anderen kiezen "Wie ben ik?", tikken op "Meedoen met een code" en typen deze code over.</p>
+    </div>
+
+    <div class="codebox" id="wbiJoinBox">
+      <label class="label" for="wbiCodeIn">Spelcode</label>
+      <input class="codein" id="wbiCodeIn" inputmode="numeric" autocomplete="off" autocorrect="off" spellcheck="false" placeholder="482 1">
+      <p class="err" id="wbiErr" hidden>Deze code klopt niet. Kijk nog eens op de telefoon van wie het spel startte.</p>
+      <p class="ok-deck" id="wbiDeck" hidden></p>
+    </div>
+
+    <div>
+      <p class="label">Welke speler ben jij?</p>
+      <div class="players" id="wbiPlayers" role="group" aria-label="Spelernummer"></div>
+      <p class="note" style="margin-top:8px">Geef iedereen een ander nummer, dan krijgt iedereen een ander woord.</p>
+    </div>
+
+    <ol class="steps">
+      <li>Tik op Start en houd je telefoon liggend tegen je voorhoofd. Jij ziet je eigen woord niet, de anderen wel.</li>
+      <li>Stel om de beurt ja/nee-vragen, zoals "Ben ik een dier?". Is het antwoord ja, dan mag je doorvragen. Bij nee is de volgende aan de beurt.</li>
+      <li>Tik bij elke vraag op het scherm, of laat iemand anders tikken. Zo telt je telefoon je vragen.</li>
+      <li>Goed geraden? Knik en houd even vast. Wil je opgeven, houd dan je kop een tel omhoog. Wie de minste vragen nodig had, wint.</li>
+    </ol>
+    <button class="cta" id="wbiStart">Start</button>
+  </div>
+</section>
+
+<!-- WIE BEN IK: UITSLAG -->
+<section id="wbires" class="screen" hidden>
+  <div class="wrap">
+    <p class="label" id="wbiResKicker"></p>
+    <div>
+      <p class="label">Je was</p>
+      <h2 class="big-title" id="wbiResWord"></h2>
+    </div>
+    <p class="verdict" id="wbiResVerdict"></p>
+    <p class="note" id="wbiResTotal"></p>
+    <ul class="list" id="wbiResList"></ul>
+    <div class="btns">
+      <button class="cta" id="wbiNext">Volgend woord</button>
+      <button class="ghost" id="wbiStop">Stoppen</button>
+    </div>
   </div>
 </section>
 
@@ -325,7 +428,7 @@ const saveSettings = () => store.set("settings", settings);
 
 /* ================= Helpers ================= */
 const $ = s => document.querySelector(s);
-const screens = ["home", "ready", "custom", "results", "game"];
+const screens = ["home", "ready", "custom", "results", "game", "wbi", "wbires"];
 function show(id) {
   screens.forEach(s => { $("#" + s).hidden = s !== id; });
   if (typeof renderMixbar === "function") renderMixbar();
@@ -372,7 +475,7 @@ function renderCats() {
   $("#home").classList.toggle("mixing", mixing);
   $("#mixToggle").setAttribute("aria-pressed", String(mixing));
   $("#mixToggle").textContent = mixing ? "Klaar" : "Zelf mixen";
-  $("#catsLabel").textContent = mixing ? "Tik stapels aan" : "Kies een stapel";
+  $("#catsLabel").textContent = mixing ? "Tik stapels aan" : (kind === "wbi" ? "Of start een nieuw spel" : "Kies een stapel");
   const tiles = CATS.map(c => ({ id: c.id, name: c.name, c: c.c, n: c.words.length }));
   tiles.push({ id: "mix", name: "Alles door elkaar", c: "#fff3df", n: CATS.reduce((s, c) => s + c.words.length, 0), cls: "allmix" });
   tiles.forEach(t => {
@@ -382,7 +485,7 @@ function renderCats() {
     b.innerHTML = `<b></b><small>${t.n} woorden</small><i>${t.name[0]}</i>`;
     b.querySelector("b").textContent = t.name;
     if (mixing) b.setAttribute("aria-pressed", String(selected.has(t.id)));
-    b.addEventListener("click", () => mixing ? toggleSel(t.id) : openReady(t.id));
+    b.addEventListener("click", () => mixing ? toggleSel(t.id) : pickDeck(t.id));
     el.appendChild(b);
   });
   const cw = customWords().length;
@@ -406,13 +509,18 @@ function toggleSel(id) {
 }
 function renderMixbar() {
   $("#mixbar").hidden = !(mixing && $("#ready").hidden && !$("#home").hidden);
-  const n = selected.size, words = selWords([...selected]).length;
+  const ids = [...selected].filter(id => kind !== "wbi" || id !== "custom");
+  const n = ids.length, words = selWords(ids).length;
   const btn = $("#mixPlay");
   btn.disabled = n === 0;
   btn.textContent = n === 0 ? "Kies een of meer stapels" : `Speel ${n} ${n === 1 ? "stapel" : "stapels"} (${words})`;
 }
 $("#mixToggle").addEventListener("click", () => { mixing = !mixing; renderCats(); });
-$("#mixPlay").addEventListener("click", () => { if (selected.size) openReady("sel"); });
+$("#mixPlay").addEventListener("click", () => {
+  if (kind === "wbi") openWbiHost("sel");
+  else if (selected.size) openReady("sel");
+});
+function pickDeck(id) { kind === "wbi" ? openWbiHost(id) : openReady(id); }
 
 function renderSettings() {
   document.querySelectorAll("#dur button").forEach(b => b.setAttribute("aria-pressed", String(+b.dataset.v === settings.duration)));
@@ -570,6 +678,9 @@ function startRound() {
   const sensorPromise = enableSensors(); // synchroon in de tik
   const cat = currentCat;
   if (!cat || !cat.words.length) { show("home"); return; }
+  game.kind = "raden";
+  $("#stage").classList.remove("wbi");
+  $("#tapPass").textContent = "← Pas"; $("#tapGood").textContent = "Goed →";
   Object.assign(game, { phase: "place", shown: null, timeUp: false, deck: drawDeck(cat), idx: 0, log: [], armed: false, steadySince: 0, lastSec: -1, busy: false });
   $("#scoreTxt").textContent = "0";
   $("#timeTxt").textContent = settings.duration;
@@ -606,6 +717,14 @@ function onSensor() {
       if (!game.steadySince) game.steadySince = now;
       else if (now - game.steadySince > 600) countdown();
     } else game.steadySince = 0;
+  } else if (game.phase === "play" && game.kind === "wbi" && !game.busy) {
+    // Wie ben ik: de kanteling even vasthouden, zodat rondkijken niet telt
+    const dir = f < -T_ACT ? 1 : f > T_ACT ? -1 : 0;
+    if (Math.abs(f) < T_NEUTRAL) { game.armed = true; game.holdDir = 0; }
+    else if (game.armed && dir) {
+      if (game.holdDir !== dir) { game.holdDir = dir; game.holdSince = now; }
+      else if (now - game.holdSince > (dir === 1 ? 600 : 1100)) wbiDone(dir === 1);
+    } else if (!dir) game.holdDir = 0;
   } else if (game.phase === "play" && !game.busy) {
     if (Math.abs(f) < T_NEUTRAL) game.armed = true;
     else if (game.armed && f < -T_ACT) answer(true);
@@ -621,7 +740,7 @@ function countdown() {
   const step = () => {
     if (game.phase !== "count") return;
     if (n > 0) { setText(String(n)); $("#sub").textContent = ""; sfx.tick(); n--; setTimeout(step, 850); }
-    else { $("#stage").classList.remove("count"); sfx.go(); play(); }
+    else { $("#stage").classList.remove("count"); sfx.go(); game.kind === "wbi" ? wbiPlay() : play(); }
   };
   step();
 }
@@ -722,27 +841,225 @@ function quit() {
   game.phase = "idle";
   cancelAnimationFrame(game.raf); game.raf = 0;
   unlockScreen();
+  if (game.kind === "wbi") { show("wbi"); return; }
   show(currentCat && currentCat.id ? "ready" : "home");
 }
 $("#quitBtn").addEventListener("click", e => { e.stopPropagation(); quit(); });
 
 /* Tikken: als fallback, en tijdens 'place' in tikmodus om te starten */
-$("#tapGood").addEventListener("click", () => { if (game.phase === "place") countdown(); else answer(true); });
-$("#tapPass").addEventListener("click", () => { if (game.phase === "place") countdown(); else answer(false); });
+$("#tapGood").addEventListener("click", () => { if (game.phase === "place") countdown(); else if (game.kind === "wbi") wbiDone(true); else answer(true); });
+$("#tapPass").addEventListener("click", () => { if (game.phase === "place") countdown(); else if (game.kind === "wbi") wbiDone(false); else answer(false); });
 
 /* Toetsenbord (handig om te testen op een computer) */
 document.addEventListener("keydown", e => {
   if ($("#game").hidden) return;
   if (e.key === "Escape") quit();
   if (game.phase === "place" && (e.key === " " || e.key === "Enter")) countdown();
-  if (game.phase === "play") {
+  if (game.phase === "play" && game.kind === "wbi") {
+    if (e.key === "ArrowDown" || e.key === "ArrowRight") wbiDone(true);
+    if (e.key === "ArrowUp" || e.key === "ArrowLeft") wbiDone(false);
+    if (e.key === " ") wbiQuestion();
+  } else if (game.phase === "play") {
     if (e.key === "ArrowDown" || e.key === "ArrowRight") answer(true);
     if (e.key === "ArrowUp" || e.key === "ArrowLeft") answer(false);
   }
 });
 
+
+/* ================= Wie ben ik? =================
+   Geen server nodig: de spelcode = 3 cijfers toeval + de gekozen stapels als getal (bitmasker).
+   Elke telefoon schudt daarmee exact dezelfde stapel. Speler p krijgt bij zijn k-de woord
+   positie k·8 + (p−1), dus nooit hetzelfde woord als een andere speler. */
+let kind = store.get("kind", "raden") === "wbi" ? "wbi" : "raden";
+const MAXP = 8;
+const wbi = { host: true, code: "", seed: 0, mask: 0, deck: [], name: "", player: 1, k: 0, q: 0, word: "", log: [] };
+
+function maskFromIds(ids) { let m = 0; CATS.forEach((c, i) => { if (ids.includes(c.id)) m += 2 ** i; }); return m; }
+function idsFromMask(m) { return CATS.filter((c, i) => Math.floor(m / 2 ** i) % 2 === 1).map(c => c.id); }
+function deckName(m) {
+  const ids = idsFromMask(m);
+  if (ids.length === CATS.length) return "Alles door elkaar";
+  const names = ids.map(id => CATS.find(c => c.id === id).name);
+  return names.length <= 3 ? names.join(" + ") : `Mix van ${names.length} stapels`;
+}
+function formatCode(d) { return d.replace(/(\d{3})(?=\d)/g, "$1 "); }
+function parseCode(str) {
+  const d = String(str).replace(/\D/g, "");
+  if (d.length < 4) return null;
+  const seed = +d.slice(0, 3), rest = d.slice(3), mask = +rest;
+  if (seed < 100 || !mask || String(mask) !== rest || mask >= 2 ** CATS.length) return null;
+  return { code: d, seed, mask };
+}
+function rng(a) {
+  return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
+}
+function seededDeck(seed, mask) {
+  const words = [...new Set(idsFromMask(mask).flatMap(id => CATS.find(c => c.id === id).words))];
+  const r = rng(seed * 1000003 + mask);
+  for (let i = words.length - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [words[i], words[j]] = [words[j], words[i]]; }
+  return words;
+}
+function loadCode(c) {
+  Object.assign(wbi, { code: c.code, seed: c.seed, mask: c.mask, deck: seededDeck(c.seed, c.mask), name: deckName(c.mask) });
+}
+function wbiWord() { return wbi.deck[(wbi.k * MAXP + wbi.player - 1) % wbi.deck.length]; }
+
+function setKind(k) { kind = k; store.set("kind", k); mixing = false; renderKind(); }
+function renderKind() {
+  document.querySelectorAll("#modes button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.kind === kind)));
+  const w = kind === "wbi";
+  $("#home").classList.toggle("wbi-mode", w);
+  $("#tag").textContent = w
+    ? "Iedereen een telefoon op het voorhoofd. Stel om de beurt ja/nee-vragen tot je weet wie of wat je bent."
+    : "Telefoon tegen je voorhoofd. De anderen beelden uit, jij raadt. Knik voor goed, kop omhoog om te passen.";
+  $("#howRaden").hidden = w; $("#howWbi").hidden = !w;
+  $("#durRow").hidden = w; $("#joinCard").hidden = !w;
+  renderCats();
+}
+document.querySelectorAll("#modes button").forEach(b => b.addEventListener("click", () => setKind(b.dataset.kind)));
+
+function renderPlayers() {
+  const el = $("#wbiPlayers");
+  el.innerHTML = "";
+  for (let p = 1; p <= MAXP; p++) {
+    const b = document.createElement("button");
+    b.textContent = p;
+    b.setAttribute("aria-pressed", String(p === wbi.player));
+    b.addEventListener("click", () => { wbi.player = p; renderPlayers(); });
+    el.appendChild(b);
+  }
+}
+function openWbiHost(id) {
+  const ids = id === "sel" ? [...selected].filter(x => x !== "custom") : id === "mix" ? CATS.map(c => c.id) : [id];
+  if (!ids.length) return;
+  const seed = 100 + Math.floor(Math.random() * 900);
+  loadCode({ code: String(seed) + String(maskFromIds(ids)), seed, mask: maskFromIds(ids) });
+  Object.assign(wbi, { host: true, player: 1 });
+  $("#wbiKicker").textContent = "Wie ben ik? · nieuw spel";
+  $("#wbiTitle").textContent = wbi.name;
+  $("#wbiCode").textContent = formatCode(wbi.code);
+  $("#wbiHostBox").hidden = false; $("#wbiJoinBox").hidden = true;
+  $("#wbiStart").disabled = false;
+  renderPlayers();
+  show("wbi");
+}
+function openWbiJoin() {
+  const last = store.get("wbi", null);
+  Object.assign(wbi, { host: false, code: "", player: last && last.player > 1 ? last.player : 2 });
+  $("#wbiKicker").textContent = "Wie ben ik? · meedoen";
+  $("#wbiTitle").textContent = "Meedoen";
+  $("#wbiHostBox").hidden = true; $("#wbiJoinBox").hidden = false;
+  $("#wbiCodeIn").value = "";
+  checkJoinCode(false);
+  renderPlayers();
+  show("wbi");
+}
+function checkJoinCode(showErr) {
+  const raw = $("#wbiCodeIn").value, c = parseCode(raw);
+  const digits = raw.replace(/\D/g, "").length;
+  $("#wbiErr").hidden = !!c || !(showErr || digits >= 6);
+  $("#wbiDeck").hidden = !c;
+  if (c) { loadCode(c); $("#wbiDeck").textContent = "Stapel: " + wbi.name; }
+  $("#wbiStart").disabled = !c;
+  return c;
+}
+$("#joinCard").addEventListener("click", openWbiJoin);
+$("#wbiCodeIn").addEventListener("input", () => checkJoinCode(false));
+$("#wbiCodeIn").addEventListener("blur", () => { if ($("#wbiCodeIn").value) checkJoinCode(true); });
+$("#wbiStart").addEventListener("click", () => {
+  if (!wbi.host && !checkJoinCode(true)) return;
+  wbi.k = 0; wbi.log = [];
+  startWbi();
+});
+
+function startWbi() {
+  ensureAudio();
+  const sensorPromise = enableSensors(); // synchroon in de tik
+  game.kind = "wbi";
+  Object.assign(game, { phase: "place", busy: false, armed: false, steadySince: 0, holdDir: 0, holdSince: 0 });
+  wbi.q = 0; wbi.word = wbiWord();
+  store.set("wbi", { code: wbi.code, player: wbi.player, k: wbi.k });
+  $("#stage").classList.remove("count", "low");
+  $("#stage").classList.add("wbi");
+  $("#tapPass").textContent = "← Opgeven"; $("#tapGood").textContent = "Geraden →";
+  $("#timeTxt").textContent = "Speler " + wbi.player;
+  updQ();
+  setFlash(null);
+  $("#taps").hidden = true;
+  show("game");
+  lockScreen();
+  layoutStage();
+  setText("Even geduld…", "Sta toegang tot beweging toe als je iPhone erom vraagt.");
+  sensorPromise.then(res => {
+    if (game.phase !== "place") return;
+    if (res === "ok") {
+      game.mode = "tilt";
+      setText("Tegen je voorhoofd!", "Houd de telefoon liggend en stil, scherm naar de anderen.");
+    } else {
+      game.mode = "tap";
+      $("#taps").hidden = false;
+      setText("Tik om te starten", "Geen kantelsensor. Tik midden op het scherm per vraag, en onderaan op Geraden of Opgeven.");
+    }
+  });
+}
+function wbiPlay() {
+  game.phase = "play";
+  game.busy = false;
+  game.armed = game.mode === "tap" || Math.abs(sensor.faceUp) < T_NEUTRAL;
+  game.holdDir = 0;
+  if (game.mode === "tap") $("#taps").hidden = false;
+  setFlash(null);
+  setText(wbi.word, "Tik op het scherm bij elke vraag");
+}
+function updQ() {
+  const el = $("#scoreTxt");
+  el.textContent = wbi.q + (wbi.q === 1 ? " vraag" : " vragen");
+  el.classList.remove("pop"); void el.offsetWidth; el.classList.add("pop");
+}
+function wbiQuestion() {
+  if (game.kind !== "wbi" || game.phase !== "play" || game.busy) return;
+  wbi.q++; updQ(); sfx.tick();
+}
+$("#stage").addEventListener("click", e => { if (!e.target.closest("button")) wbiQuestion(); });
+
+function wbiDone(ok) {
+  if (game.kind !== "wbi" || game.phase !== "play" || game.busy) return;
+  game.busy = true; game.phase = "over";
+  wbi.log.push({ word: wbi.word, q: wbi.q, ok });
+  $("#taps").hidden = true;
+  setFlash(ok ? "good" : "pass");
+  setText(ok ? "Geraden!" : "Opgegeven", `${wbi.word} · ${wbi.q} ${wbi.q === 1 ? "vraag" : "vragen"}`);
+  ok ? sfx.good() : sfx.pass();
+  setTimeout(() => { unlockScreen(); renderWbiRes(); show("wbires"); }, 2200);
+}
+function renderWbiRes() {
+  const last = wbi.log[wbi.log.length - 1];
+  const vr = n => n + (n === 1 ? " vraag" : " vragen");
+  $("#wbiResKicker").textContent = `Speler ${wbi.player} · code ${formatCode(wbi.code)}`;
+  $("#wbiResWord").textContent = last.word;
+  const v = $("#wbiResVerdict");
+  v.textContent = last.ok ? `Geraden in ${vr(last.q)}` : `Opgegeven na ${vr(last.q)}`;
+  v.className = "verdict " + (last.ok ? "good" : "pass");
+  const guessed = wbi.log.filter(l => l.ok).length;
+  const totalQ = wbi.log.reduce((s, l) => s + l.q, 0);
+  $("#wbiResTotal").textContent = wbi.log.length > 1
+    ? `Dit spel: ${guessed} van ${wbi.log.length} geraden, ${vr(totalQ)} in totaal. Vergelijk met de anderen: minste vragen wint.`
+    : "Vergelijk met de anderen: wie de minste vragen nodig had, wint.";
+  const ul = $("#wbiResList");
+  ul.innerHTML = "";
+  if (wbi.log.length > 1) wbi.log.slice(0, -1).reverse().forEach(l => {
+    const li = document.createElement("li"), b = document.createElement("button");
+    b.className = "static"; b.tabIndex = -1;
+    b.textContent = `${l.word} · ${vr(l.q)}`;
+    b.dataset.ok = l.ok ? "1" : "0";
+    li.appendChild(b); ul.appendChild(li);
+  });
+}
+$("#wbiNext").addEventListener("click", () => { wbi.k++; startWbi(); });
+$("#wbiStop").addEventListener("click", () => show("home"));
+
 /* ================= Start ================= */
-renderCats();
+renderKind();
 renderSettings();
 if ("serviceWorker" in navigator && location.protocol === "https:") {
   navigator.serviceWorker.register("sw.js").catch(() => {});
